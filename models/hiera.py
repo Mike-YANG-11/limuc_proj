@@ -416,7 +416,7 @@ class Hiera(nn.Module, PyTorchModelHubMixin):
         "mae_in1k_ft_in1k": "https://dl.fbaipublicfiles.com/hiera/hiera_tiny_224.pth",
         "mae_in1k": "https://dl.fbaipublicfiles.com/hiera/mae_hiera_tiny_224.pth",
     },
-    default="mae_in1k",  ###
+    default="mae_in1k_ft_in1k",
 )
 def hiera_tiny_224(**kwdargs):
     return Hiera(embed_dim=96, num_heads=1, stages=(1, 2, 7, 2), **kwdargs)

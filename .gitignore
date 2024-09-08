@@ -5,3 +5,4 @@ images/sample_images_3.png
 data/
 weights/
 pretrain_weights/
+wandb/

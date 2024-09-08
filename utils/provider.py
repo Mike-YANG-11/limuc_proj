@@ -529,7 +529,7 @@ def initialize_model(model_name, pretrained, num_classes):
         model.classifier[3] = torch.nn.Linear(in_features, num_classes)
 
     elif model_name == "Hiera_tiny":
-        model = hiera_tiny_224(num_classes=num_classes)
+        model = hiera_tiny_224(num_classes=num_classes, drop_path_rate=0.1)
         if pretrained:
             ckpt = torch.load("pretrain_weights/mae_hiera_tiny_224.pth")["model_state"]
             model.load_state_dict(ckpt, strict=False)

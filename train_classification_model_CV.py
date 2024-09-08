@@ -18,6 +18,7 @@ from utils.provider import (
     write_metric_results_to_file,
     get_batch_size_for_model,
 )
+import utils.lr_decay as lrd
 import argparse
 
 
@@ -173,7 +174,11 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
 
     print("model: " + experiment_signature + " worker: " + str(num_worker))
 
-    if optimizer_name == "Adam":
+    if optimizer_name == "AdamW" and args.layer_decay > 0:
+        # build optimizer with layer-wise lr decay (lrd)
+        param_groups = lrd.param_groups_lrd(model, args.weight_decay, no_weight_decay_list=model.no_weight_decay(), layer_decay=args.layer_decay)
+        optimizer = torch.optim.AdamW(param_groups, lr=learning_rate)
+    elif optimizer_name == "Adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     elif optimizer_name == "AdamW":
         optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -248,6 +253,7 @@ if __name__ == "__main__":
     parser.add_argument("--optimizer", type=str, choices=["Adam", "AdamW", "SGD"], default="Adam", help="Name of the optimization function.")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.0002, help="learning rate.")
     parser.add_argument("-wd", "--weight_decay", type=float, default=0.0, help="weight decay.")
+    parser.add_argument("--layer_decay", type=float, default=0, help="layer-wise lr decay from ELECTRA/BEiT")
     parser.add_argument("-est", "--early_stopping_threshold", type=int, default=5, help="early stopping threshold to terminate training.")
     parser.add_argument("--num_epoch", type=int, default=200, help="Max number of epochs to train.")
     parser.add_argument("--use_lrscheduling", choices=["True", "False"], default="True", help="if given, training does not use LR scheduling.")
