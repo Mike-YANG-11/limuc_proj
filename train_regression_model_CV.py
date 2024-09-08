@@ -21,6 +21,7 @@ from utils.provider import (
 )
 from sklearn.metrics import classification_report, precision_recall_fscore_support
 import argparse
+import utils.lr_decay as lrd
 
 
 def train_inception(model, device, train_loader, criterion, optimizer):
@@ -101,6 +102,8 @@ def validation(model, device, val_loader, criterion):
 def get_test_set_results(id, test_dir, normalize):
     if model_name == "Inception_v3":
         test_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
+    elif model_name == "Hiera_tiny":
+        test_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         test_transform = transforms.Compose([transforms.ToTensor(), normalize])
 
@@ -127,6 +130,16 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
                 normalize,
             ]
         )
+    elif model_name == "Hiera_tiny":
+        train_transform = transforms.Compose(
+            [
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation((-180, 180)),
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                normalize,
+            ]
+        )
     else:
         train_transform = transforms.Compose(
             [transforms.RandomHorizontalFlip(), transforms.RandomRotation((-180, 180)), transforms.ToTensor(), normalize]
@@ -143,6 +156,8 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
 
     if model_name == "Inception_v3":
         val_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
+    elif model_name == "Hiera_tiny":
+        val_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         val_transform = transforms.Compose([transforms.ToTensor(), normalize])
 
@@ -164,8 +179,14 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
     )
     print("model: " + experiment_signature + " worker: " + str(num_worker))
 
-    if optimizer_name == "Adam":
+    if optimizer_name == "AdamW" and args.layer_decay > 0:
+        # build optimizer with layer-wise lr decay (lrd)
+        param_groups = lrd.param_groups_lrd(model, args.weight_decay, no_weight_decay_list=model.no_weight_decay(), layer_decay=args.layer_decay)
+        optimizer = torch.optim.AdamW(param_groups, lr=learning_rate)
+    elif optimizer_name == "Adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    elif optimizer_name == "AdamW":
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     elif optimizer_name == "SGD":
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay)
     else:
@@ -229,12 +250,13 @@ if __name__ == "__main__":
         "--model_name",
         type=str,
         default="ResNet18",
-        choices=["ResNet18", "ResNet50", "VGG16_bn", "DenseNet121", "Inception_v3", "MobileNet_v3_large"],
+        choices=["ResNet18", "ResNet50", "VGG16_bn", "DenseNet121", "Inception_v3", "MobileNet_v3_large", "Hiera_tiny"],
         help="Name of the CNN architecture.",
     )
-    parser.add_argument("--optimizer", type=str, choices=["Adam", "SGD"], default="Adam", help="Name of the optimization function.")
+    parser.add_argument("--optimizer", type=str, choices=["Adam", "AdamW", "SGD"], default="Adam", help="Name of the optimization function.")
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.0002, help="learning rate.")
     parser.add_argument("-wd", "--weight_decay", type=float, default=0.0, help="weight decay.")
+    parser.add_argument("--layer_decay", type=float, default=0, help="layer-wise lr decay from ELECTRA/BEiT")
     parser.add_argument("-est", "--early_stopping_threshold", type=int, default=5, help="early stopping threshold to terminate training.")
     parser.add_argument("--num_epoch", type=int, default=200, help="Max number of epochs to train.")
     parser.add_argument("--use_lrscheduling", choices=["True", "False"], default="True", help="if given, training does not use LR scheduling.")
@@ -326,7 +348,7 @@ if __name__ == "__main__":
         print("\n--------------> Starting Fold " + str(id))
         if enable_wandb:
             wandb.init(project="ulcerative-colitis-classification", group=model_name + "_CV_R" + "_" + group_id, save_code=True, reinit=True)
-            wandb.run.name = model_name + "reg_epoch_" + str(id)
+            wandb.run.name = model_name + "_reg_epoch_" + str(id)
             wandb.run.save()
 
             config = wandb.config
