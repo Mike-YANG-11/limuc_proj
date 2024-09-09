@@ -247,7 +247,7 @@ if __name__ == "__main__":
         "--model_name",
         type=str,
         default="ResNet18",
-        choices=["ResNet18", "ResNet50", "VGG16_bn", "DenseNet121", "Inception_v3", "MobileNet_v3_large", "Hiera_tiny", "TransNeXt_tiny"],
+        choices=["ResNet18", "ResNet50", "VGG16_bn", "DenseNet121", "Inception_v3", "MobileNet_v3_large", "Hiera_tiny", "TransNeXt_tiny", "ViT_small"],
         help="Name of the CNN architecture.",
     )
     parser.add_argument("--optimizer", type=str, choices=["Adam", "AdamW", "SGD"], default="Adam", help="Name of the optimization function.")
