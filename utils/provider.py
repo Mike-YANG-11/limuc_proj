@@ -470,6 +470,7 @@ def weighted_random_sampler(dataset):
 def initialize_model(model_name, pretrained, num_classes):
     import torch
     import torchvision.models as models
+    from timm import create_model
 
     model = None
 
@@ -493,7 +494,10 @@ def initialize_model(model_name, pretrained, num_classes):
         if pretrained:
             model = models.resnet50(pretrained=True)
         else:
+            ckpt = torch.load("./pretrain_weights/RN50_Billion-Scale-SWSL+GastroNet-5M_DINOv1.pth")
             model = models.resnet50()
+            model.load_state_dict(ckpt, strict=False)
+            print("Endoscopy Foundation Pretrained weights loaded!")
         in_features = model.fc.in_features
         model.fc = torch.nn.Linear(in_features, num_classes)
 
@@ -535,13 +539,24 @@ def initialize_model(model_name, pretrained, num_classes):
     elif model_name == "Hiera_tiny":
         model = hiera_tiny_224(num_classes=num_classes, drop_path_rate=0.1)
         if pretrained:
-            ckpt = torch.load("pretrain_weights/mae_hiera_tiny_224.pth")["model_state"]
+            # ckpt = torch.load("pretrain_weights/mae_hiera_tiny_224.pth")["model_state"]
+            ckpt = torch.load("pretrain_weights/hiera_tiny_224.pth")["model_state"]
+            ckpt.pop("head.projection.weight")
+            ckpt.pop("head.projection.bias")
             model.load_state_dict(ckpt, strict=False)
 
     elif model_name == "TransNeXt_tiny":
         model = transnext_tiny(num_classes=num_classes)
         if pretrained:
             ckpt = torch.load("pretrain_weights/transnext_tiny_224_1k.pth")
+            ckpt.pop("head.weight")
+            ckpt.pop("head.bias")
+            model.load_state_dict(ckpt, strict=False)
+
+    elif model_name == "ViT_small":
+        model = create_model("vit_small_patch16_224", num_classes=num_classes)
+        if pretrained:
+            ckpt = torch.load("pretrain_weights/VITS_GastroNet-5M_DINOv1.pth")
             ckpt.pop("head.weight")
             ckpt.pop("head.bias")
             model.load_state_dict(ckpt, strict=False)
@@ -578,8 +593,6 @@ def initialize_corn_model(model_name, pretrained, num_classes):
     elif model_name == "ResNet50":
         if pretrained:
             model = models.resnet50(pretrained=True)
-        else:
-            model = models.resnet50()
         in_features = model.fc.in_features
         model.fc = torch.nn.Linear(in_features, num_classes - 1)
 

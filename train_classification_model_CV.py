@@ -95,7 +95,7 @@ def validation(model, device, val_loader, criterion):
 def get_test_set_results(id, test_dir, normalize):
     if model_name == "Inception_v3":
         test_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
-    elif model_name == "Hiera_tiny" or "TransNeXt_tiny":
+    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small":
         test_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         test_transform = transforms.Compose([transforms.ToTensor(), normalize])
@@ -123,7 +123,7 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
                 normalize,
             ]
         )
-    elif model_name == "Hiera_tiny" or "TransNeXt_tiny":
+    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small":
         train_transform = transforms.Compose(
             [
                 transforms.RandomHorizontalFlip(),
@@ -150,7 +150,7 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
 
     if model_name == "Inception_v3":
         val_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
-    if model_name == "Hiera_tiny" or "TransNeXt_tiny":
+    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small":
         val_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         val_transform = transforms.Compose([transforms.ToTensor(), normalize])
