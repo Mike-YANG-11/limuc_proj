@@ -95,7 +95,7 @@ def validation(model, device, val_loader, criterion):
 def get_test_set_results(id, test_dir, normalize):
     if model_name == "Inception_v3":
         test_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
-    elif model_name == "Hiera_tiny":
+    elif model_name == "Hiera_tiny" or "TransNeXt_tiny":
         test_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         test_transform = transforms.Compose([transforms.ToTensor(), normalize])
@@ -123,7 +123,7 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
                 normalize,
             ]
         )
-    elif model_name == "Hiera_tiny":
+    elif model_name == "Hiera_tiny" or "TransNeXt_tiny":
         train_transform = transforms.Compose(
             [
                 transforms.RandomHorizontalFlip(),
@@ -150,7 +150,7 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
 
     if model_name == "Inception_v3":
         val_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
-    if model_name == "Hiera_tiny":
+    if model_name == "Hiera_tiny" or "TransNeXt_tiny":
         val_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         val_transform = transforms.Compose([transforms.ToTensor(), normalize])
@@ -247,7 +247,7 @@ if __name__ == "__main__":
         "--model_name",
         type=str,
         default="ResNet18",
-        choices=["ResNet18", "ResNet50", "VGG16_bn", "DenseNet121", "Inception_v3", "MobileNet_v3_large", "Hiera_tiny"],
+        choices=["ResNet18", "ResNet50", "VGG16_bn", "DenseNet121", "Inception_v3", "MobileNet_v3_large", "Hiera_tiny", "TransNeXt_tiny"],
         help="Name of the CNN architecture.",
     )
     parser.add_argument("--optimizer", type=str, choices=["Adam", "AdamW", "SGD"], default="Adam", help="Name of the optimization function.")

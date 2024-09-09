@@ -14,11 +14,11 @@ from math import sqrt
 from statistics import mean, pstdev
 import numpy as np
 
-from models import hiera_tiny_224
+from models import hiera_tiny_224, transnext_tiny
 
 
 def get_batch_size_for_model(model_name=""):
-    if model_name == "ResNet18" or "Hiera_tiny":
+    if model_name == "ResNet18":
         batch_size = 64
     elif model_name == "ResNet50":
         batch_size = 32
@@ -30,6 +30,10 @@ def get_batch_size_for_model(model_name=""):
         batch_size = 32
     elif model_name == "mobilenet_v3_large":
         batch_size = 32
+    elif model_name == "Hiera_tiny":
+        batch_size = 64
+    elif model_name == "TransNeXt_tiny":
+        batch_size = 16
     else:
         batch_size = 16
 
@@ -532,6 +536,14 @@ def initialize_model(model_name, pretrained, num_classes):
         model = hiera_tiny_224(num_classes=num_classes, drop_path_rate=0.1)
         if pretrained:
             ckpt = torch.load("pretrain_weights/mae_hiera_tiny_224.pth")["model_state"]
+            model.load_state_dict(ckpt, strict=False)
+
+    elif model_name == "TransNeXt_tiny":
+        model = transnext_tiny(num_classes=num_classes)
+        if pretrained:
+            ckpt = torch.load("pretrain_weights/transnext_tiny_224_1k.pth")
+            ckpt.pop("head.weight")
+            ckpt.pop("head.bias")
             model.load_state_dict(ckpt, strict=False)
 
     else:

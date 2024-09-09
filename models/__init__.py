@@ -22,3 +22,11 @@ from .hiera import (
     Head,
     PatchEmbed,
 )
+
+from .transnext import (
+    transnext_micro,
+    transnext_tiny,
+    transnext_small,
+    transnext_base,
+    transnext_micro_AAAA,
+)
