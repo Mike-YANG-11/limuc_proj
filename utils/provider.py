@@ -34,6 +34,8 @@ def get_batch_size_for_model(model_name=""):
         batch_size = 64
     elif model_name == "TransNeXt_tiny":
         batch_size = 16
+    elif model_name == "ViT_small":
+        batch_size = 64
     else:
         batch_size = 16
 
@@ -557,8 +559,6 @@ def initialize_model(model_name, pretrained, num_classes):
         model = create_model("vit_small_patch16_224", num_classes=num_classes)
         if pretrained:
             ckpt = torch.load("pretrain_weights/VITS_GastroNet-5M_DINOv1.pth")
-            ckpt.pop("head.weight")
-            ckpt.pop("head.bias")
             model.load_state_dict(ckpt, strict=False)
 
     else:
