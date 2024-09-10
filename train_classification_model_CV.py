@@ -10,6 +10,7 @@ from sklearn.metrics import confusion_matrix, cohen_kappa_score, accuracy_score,
 import wandb
 from dataset.ucmayo4 import UCMayo4
 from utils.metrics import get_mean_sensitivity_specificity, classification_report
+from utils.loss import ClassDistanceWeightedLoss
 from utils import provider
 from utils.provider import (
     get_test_results_classification,
@@ -95,7 +96,7 @@ def validation(model, device, val_loader, criterion):
 def get_test_set_results(id, test_dir, normalize):
     if model_name == "Inception_v3":
         test_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
-    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small":
+    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small" or model_name == "Endo_FM":
         test_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         test_transform = transforms.Compose([transforms.ToTensor(), normalize])
@@ -123,7 +124,7 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
                 normalize,
             ]
         )
-    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small":
+    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small" or model_name == "Endo_FM":
         train_transform = transforms.Compose(
             [
                 transforms.RandomHorizontalFlip(),
@@ -150,7 +151,7 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
 
     if model_name == "Inception_v3":
         val_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
-    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small":
+    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small" or model_name == "Endo_FM":
         val_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         val_transform = transforms.Compose([transforms.ToTensor(), normalize])
@@ -192,7 +193,8 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
             optimizer, mode="max", factor=lrs_factor, patience=lr_scheduler_patience, threshold=best_threshold, verbose=False
         )
 
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
+    criterion = ClassDistanceWeightedLoss(num_classes, power=5.0, reduction="mean")  # Remind to change the Hiera output (no softmax)
 
     for epoch in range(num_epoch):
 
@@ -247,7 +249,18 @@ if __name__ == "__main__":
         "--model_name",
         type=str,
         default="ResNet18",
-        choices=["ResNet18", "ResNet50", "VGG16_bn", "DenseNet121", "Inception_v3", "MobileNet_v3_large", "Hiera_tiny", "TransNeXt_tiny"],
+        choices=[
+            "ResNet18",
+            "ResNet50",
+            "VGG16_bn",
+            "DenseNet121",
+            "Inception_v3",
+            "MobileNet_v3_large",
+            "Hiera_tiny",
+            "TransNeXt_tiny",
+            "ViT_small",
+            "Endo_FM",
+        ],
         help="Name of the CNN architecture.",
     )
     parser.add_argument("--optimizer", type=str, choices=["Adam", "AdamW", "SGD"], default="Adam", help="Name of the optimization function.")

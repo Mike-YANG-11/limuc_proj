@@ -15,6 +15,7 @@ from statistics import mean, pstdev
 import numpy as np
 
 from models import hiera_tiny_224, transnext_tiny
+from models.timesformer.timesformer import get_vit_base_patch16_224
 
 
 def get_batch_size_for_model(model_name=""):
@@ -560,6 +561,19 @@ def initialize_model(model_name, pretrained, num_classes):
             ckpt.pop("head.weight")
             ckpt.pop("head.bias")
             model.load_state_dict(ckpt, strict=False)
+
+    elif model_name == "Endo_FM":
+        model = get_vit_base_patch16_224()
+        if pretrained:
+            ckpt = torch.load("models/timesformer/pretrain_weights/endo_fm.pth")["student"]
+            # remove keys prefix "module.backbone." & head keys
+            new_ckpt = {}
+            for key in ckpt.keys():
+                new_key = key.replace("module.backbone.", "")
+                if "head" not in new_key:
+                    new_ckpt[new_key] = ckpt[key]
+            del ckpt
+            model.load_state_dict(new_ckpt, strict=False)
 
     else:
         print("Invalid model name!")

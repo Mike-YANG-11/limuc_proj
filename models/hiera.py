@@ -396,7 +396,7 @@ class Hiera(nn.Module, PyTorchModelHubMixin):
         if mask is None:
             x = x.mean(dim=1)
             x = self.norm(x)
-            x = self.head(x)
+            # x = self.head(x)
 
         # x may not always be in spatial order here.
         # e.g. if q_pool = 2, mask_unit_size = (8, 8), and
