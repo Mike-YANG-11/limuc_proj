@@ -14,8 +14,9 @@ from math import sqrt
 from statistics import mean, pstdev
 import numpy as np
 
-from models import hiera_tiny_224, transnext_tiny
-from models.timesformer.timesformer import get_vit_base_patch16_224
+from models import hiera_tiny_224
+from models import transnext_tiny
+from models import get_vit_base_patch16_224
 
 
 def get_batch_size_for_model(model_name=""):
@@ -35,8 +36,10 @@ def get_batch_size_for_model(model_name=""):
         batch_size = 64
     elif model_name == "TransNeXt_tiny":
         batch_size = 16
-    elif model_name == "ViT_small":
+    elif model_name == "ViT_small_G5M":
         batch_size = 64
+    elif model_name == "Dinov2_ViT_small":
+        batch_size = 4
     else:
         batch_size = 16
 
@@ -542,10 +545,10 @@ def initialize_model(model_name, pretrained, num_classes):
     elif model_name == "Hiera_tiny":
         model = hiera_tiny_224(num_classes=num_classes, drop_path_rate=0.1)
         if pretrained:
-            # ckpt = torch.load("pretrain_weights/mae_hiera_tiny_224.pth")["model_state"]
-            ckpt = torch.load("pretrain_weights/hiera_tiny_224.pth")["model_state"]
-            ckpt.pop("head.projection.weight")
-            ckpt.pop("head.projection.bias")
+            ckpt = torch.load("pretrain_weights/mae_hiera_tiny_224.pth")["model_state"]
+            # ckpt = torch.load("pretrain_weights/hiera_tiny_224.pth")["model_state"]
+            # ckpt.pop("head.projection.weight")
+            # ckpt.pop("head.projection.bias")
             model.load_state_dict(ckpt, strict=False)
 
     elif model_name == "TransNeXt_tiny":
@@ -556,7 +559,7 @@ def initialize_model(model_name, pretrained, num_classes):
             ckpt.pop("head.bias")
             model.load_state_dict(ckpt, strict=False)
 
-    elif model_name == "ViT_small":
+    elif model_name == "ViT_small_G5M":
         model = create_model("vit_small_patch16_224", num_classes=num_classes)
         if pretrained:
             ckpt = torch.load("pretrain_weights/VITS_GastroNet-5M_DINOv1.pth")
@@ -574,6 +577,29 @@ def initialize_model(model_name, pretrained, num_classes):
                     new_ckpt[new_key] = ckpt[key]
             del ckpt
             model.load_state_dict(new_ckpt, strict=False)
+
+    elif model_name == "Dinov2_ViT_small":
+        model = torch.hub.load("facebookresearch/dinov2", "dinov2_vits14")
+        model.head = torch.nn.Linear(in_features=384, out_features=num_classes)
+
+        # class Dinov2Model(torch.nn.Module):
+        #     def __init__(self):
+        #         super(Dinov2Model, self).__init__()
+        #         self.backbone = torch.hub.load("facebookresearch/dinov2", "dinov2_vits14")
+        #         self.head = torch.nn.Sequential(
+        #             torch.nn.Linear(in_features=384, out_features=4096),
+        #             torch.nn.ReLU(),
+        #             torch.nn.Dropout(p=0.2),
+        #             torch.nn.Linear(in_features=4096, out_features=num_classes),
+        #         )
+
+        #     def forward(self, x):
+        #         with torch.no_grad():
+        #             x = self.backbone(x)
+        #         x = self.head(x)
+        #         return x
+
+        # model = Dinov2Model()
 
     else:
         print("Invalid model name!")

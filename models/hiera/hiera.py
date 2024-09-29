@@ -156,8 +156,8 @@ class Head(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.dropout(x)
         x = self.projection(x)
-        if not self.training:
-            x = self.act_func(x)
+        # if not self.training:
+        #     x = self.act_func(x)
         return x
 
 
@@ -396,7 +396,7 @@ class Hiera(nn.Module, PyTorchModelHubMixin):
         if mask is None:
             x = x.mean(dim=1)
             x = self.norm(x)
-            # x = self.head(x)
+            x = self.head(x)
 
         # x may not always be in spatial order here.
         # e.g. if q_pool = 2, mask_unit_size = (8, 8), and

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 # --------------------------------------------------------
 
-from .hiera import (
+from .hiera.hiera import (
     hiera_tiny_224,
     hiera_small_224,
     hiera_base_224,
@@ -23,10 +23,12 @@ from .hiera import (
     PatchEmbed,
 )
 
-from .transnext import (
+from .transnext.transnext import (
     transnext_micro,
     transnext_tiny,
     transnext_small,
     transnext_base,
     transnext_micro_AAAA,
 )
+
+from .timesformer.timesformer import get_vit_base_patch16_224

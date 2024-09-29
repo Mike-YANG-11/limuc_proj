@@ -54,7 +54,6 @@ def train(model, device, train_loader, criterion, optimizer):
     training_loss = 0.0
     correct = 0
     for data, target in tqdm(train_loader):
-        # print(data.size())
         data, target = data.to(device), target.to(device)
 
         output = model(data)
@@ -96,7 +95,13 @@ def validation(model, device, val_loader, criterion):
 def get_test_set_results(id, test_dir, normalize):
     if model_name == "Inception_v3":
         test_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
-    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small" or model_name == "Endo_FM":
+    elif (
+        model_name == "Hiera_tiny"
+        or model_name == "TransNeXt_tiny"
+        or model_name == "ViT_small"
+        or model_name == "Endo_FM"
+        or model_name == "Dinov2_ViT_small"
+    ):
         test_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         test_transform = transforms.Compose([transforms.ToTensor(), normalize])
@@ -124,7 +129,13 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
                 normalize,
             ]
         )
-    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small" or model_name == "Endo_FM":
+    elif (
+        model_name == "Hiera_tiny"
+        or model_name == "TransNeXt_tiny"
+        or model_name == "ViT_small"
+        or model_name == "Endo_FM"
+        or model_name == "Dinov2_ViT_small"
+    ):
         train_transform = transforms.Compose(
             [
                 transforms.RandomHorizontalFlip(),
@@ -151,7 +162,13 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
 
     if model_name == "Inception_v3":
         val_transform = transforms.Compose([transforms.Resize((299, 299)), transforms.ToTensor(), normalize])
-    elif model_name == "Hiera_tiny" or model_name == "TransNeXt_tiny" or model_name == "ViT_small" or model_name == "Endo_FM":
+    elif (
+        model_name == "Hiera_tiny"
+        or model_name == "TransNeXt_tiny"
+        or model_name == "ViT_small"
+        or model_name == "Endo_FM"
+        or model_name == "Dinov2_ViT_small"
+    ):
         val_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), normalize])
     else:
         val_transform = transforms.Compose([transforms.ToTensor(), normalize])
@@ -189,12 +206,17 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
         raise Exception("Undefined optimizer name")
 
     if use_lrscheduling:
-        scheduler = lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="max", factor=lrs_factor, patience=lr_scheduler_patience, threshold=best_threshold, verbose=False
-        )
+        if args.LR_scheduler == "ReduceLROnPlateau":
+            scheduler = lr_scheduler.ReduceLROnPlateau(
+                optimizer, mode="max", factor=lrs_factor, patience=lr_scheduler_patience, threshold=best_threshold, verbose=False
+            )
+        elif args.LR_scheduler == "Linear":
+            scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.1, total_iters=num_epoch)
+        else:
+            raise NotImplementedError("Undefined LR scheduler")
 
     # criterion = nn.CrossEntropyLoss()
-    criterion = ClassDistanceWeightedLoss(num_classes, power=5.0, reduction="mean")  # Remind to change the Hiera output (no softmax)
+    criterion = ClassDistanceWeightedLoss(num_classes, power=args.class_weight_power, reduction="mean")
 
     for epoch in range(num_epoch):
 
@@ -204,7 +226,10 @@ def run_experiment(experiment_id: int, train_dir: str, val_dir: str, normalize, 
             train_loss, train_accuracy = train(model, device, train_loader, criterion, optimizer)
         val_loss, val_accuracy = validation(model, device, val_loader, criterion)
         if use_lrscheduling:
-            scheduler.step(val_accuracy)
+            if args.LR_scheduler == "ReduceLROnPlateau":
+                scheduler.step(val_accuracy)
+            elif args.LR_scheduler == "Linear":
+                scheduler.step()
 
         if enable_wandb:
             wandb.log(
@@ -258,19 +283,22 @@ if __name__ == "__main__":
             "MobileNet_v3_large",
             "Hiera_tiny",
             "TransNeXt_tiny",
-            "ViT_small",
+            "ViT_small_G5M",
             "Endo_FM",
+            "Dinov2_ViT_small",
         ],
         help="Name of the CNN architecture.",
     )
+    parser.add_argument("--class_weight_power", type=float, default=3.0, help="Power term for class distance weighted loss.")
     parser.add_argument("--optimizer", type=str, choices=["Adam", "AdamW", "SGD"], default="Adam", help="Name of the optimization function.")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.0002, help="learning rate.")
-    parser.add_argument("-wd", "--weight_decay", type=float, default=0.0, help="weight decay.")
-    parser.add_argument("--layer_decay", type=float, default=0, help="layer-wise lr decay from ELECTRA/BEiT")
-    parser.add_argument("-est", "--early_stopping_threshold", type=int, default=5, help="early stopping threshold to terminate training.")
-    parser.add_argument("--num_epoch", type=int, default=200, help="Max number of epochs to train.")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=1e-5, help="learning rate.")
+    parser.add_argument("-wd", "--weight_decay", type=float, default=0.05, help="weight decay.")
+    parser.add_argument("--layer_decay", type=float, default=0.65, help="layer-wise lr decay from ELECTRA/BEiT")
+    parser.add_argument("-est", "--early_stopping_threshold", type=int, default=15, help="early stopping threshold to terminate training.")
+    parser.add_argument("--num_epoch", type=int, default=100, help="Max number of epochs to train.")
     parser.add_argument("--use_lrscheduling", choices=["True", "False"], default="True", help="if given, training does not use LR scheduling.")
-    parser.add_argument("-lrsp", "--LRscheduling_patience", type=int, default=15, help="learning rate scheduling patience to decrease learning rate.")
+    parser.add_argument("--LR_scheduler", type=str, default="ReduceLROnPlateau", help="LR scheduler to use.")
+    parser.add_argument("-lrsp", "--LRscheduling_patience", type=int, default=5, help="learning rate scheduling patience to decrease learning rate.")
     parser.add_argument(
         "-lrsf", "--LRscheduling_factor", type=float, default=0.2, help="learning rate scheduling scaling factor when decrease learning rate."
     )
@@ -296,8 +324,10 @@ if __name__ == "__main__":
     optimizer_name = args.optimizer
     use_lrscheduling = args.use_lrscheduling == "True"
 
+    class_weight_power = args.class_weight_power
     learning_rate = args.learning_rate
     weight_decay = args.weight_decay
+    layer_decay = args.layer_decay
     best_threshold = 0.0001
     num_epoch = args.num_epoch
     num_worker = 0
@@ -366,10 +396,13 @@ if __name__ == "__main__":
             config.model = model_name
             config.dataset = "final_dataset"
             config.lr = learning_rate
+            config.lr_scheduler = args.LR_scheduler
+            config.layer_decay = layer_decay
             config.wd = weight_decay
             config.bs = batch_size
             config.num_worker = num_worker
             config.optimizer = optimizer_name
+            config.class_weight_power = class_weight_power
 
         train_dir = os.path.join(CV_fold_path, CV_fold_folders[i], "train")
         val_dir = os.path.join(CV_fold_path, CV_fold_folders[i], "val")
